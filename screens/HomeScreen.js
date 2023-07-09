@@ -1,5 +1,5 @@
 import { View, Image, Text, SafeAreaView, ScrollView } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -7,11 +7,50 @@ import {
 import Features from "../components/Features";
 import { dummyMessages } from "../constants";
 import { TouchableOpacity } from "react-native";
+import Voice from "@react-native-voice/voice";
 
 const HomeScreen = () => {
   const [messages, setMessages] = useState(dummyMessages);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(true);
+  const [result, setResult] = useState("");
+
+  const speechStartHandler = (e) => {
+    console.log("speech start handler");
+  };
+
+  const speechEndHandler = (e) => {
+    setRecording(false);
+    console.log("speech end handler");
+  };
+
+  const speechResultsHandler = (e) => {
+    console.log("voice event: ", e);
+    const text = e.value[0];
+    setResult(text);
+  };
+
+  const speechErrorHandler = (e) => {
+    console.log("speech error handler ", e);
+  };
+
+  const startRecording = async () => {
+    setRecording(true);
+    try {
+      Voice.start("en-GB");
+    } catch (error) {
+      console.log("error: ", error);
+    }
+  };
+
+  const stopRecording = () => {
+    try {
+      Voice.stop();
+      setRecording(false);
+    } catch (error) {
+      console.log("error: ", error);
+    }
+  };
 
   const stopSpeaking = () => {
     setSpeaking(false);
@@ -20,6 +59,21 @@ const HomeScreen = () => {
   const clear = () => {
     setMessages([]);
   };
+
+  useEffect(() => {
+    // voice handler events
+    Voice.onSpeechStart = speechStartHandler;
+    Voice.onSpeechEnd = speechEndHandler;
+    Voice.onSpeechResults = speechResultsHandler;
+    Voice.onSpeechError = speechErrorHandler;
+
+    return () => {
+      //destroy the voice instance
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
+
+  console.log("Results: ", result);
 
   return (
     <View className="flex-1 bg-white">
@@ -106,7 +160,8 @@ const HomeScreen = () => {
         {/* recording, clear, and stop buttons  */}
         <View className="flex justify-center items-center">
           {recording ? (
-            <TouchableOpacity>
+            <TouchableOpacity onPress={stopRecording}>
+              {/* recording start button */}
               <Image
                 className="rounded-full"
                 source={require("../assets/images/voiceLoading.gif")}
@@ -114,7 +169,8 @@ const HomeScreen = () => {
               />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity>
+            <TouchableOpacity onPress={startRecording}>
+              {/* recording start button */}
               <Image
                 className="rounded-full"
                 source={require("../assets/images/recordingIcon.png")}
