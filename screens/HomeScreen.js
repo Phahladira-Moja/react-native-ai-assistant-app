@@ -1,5 +1,5 @@
 import { View, Image, Text, SafeAreaView, ScrollView } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -8,12 +8,16 @@ import Features from "../components/Features";
 import { dummyMessages } from "../constants";
 import { TouchableOpacity } from "react-native";
 import Voice from "@react-native-voice/voice";
+import { apiCall } from "../api/openAI";
+import Tts from "react-native-tts";
 
 const HomeScreen = () => {
-  const [messages, setMessages] = useState(dummyMessages);
+  const [messages, setMessages] = useState([]);
   const [recording, setRecording] = useState(false);
-  const [speaking, setSpeaking] = useState(true);
+  const [speaking, setSpeaking] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState("");
+  const ScrollViewRef = useRef();
 
   const speechStartHandler = (e) => {
     console.log("speech start handler");
@@ -36,6 +40,8 @@ const HomeScreen = () => {
 
   const startRecording = async () => {
     setRecording(true);
+    setSpeaking(false);
+    Tts.stop();
     try {
       Voice.start("en-GB");
     } catch (error) {
@@ -47,17 +53,21 @@ const HomeScreen = () => {
     try {
       Voice.stop();
       setRecording(false);
+      fetchResponse();
     } catch (error) {
       console.log("error: ", error);
     }
   };
 
   const stopSpeaking = () => {
+    Tts.stop();
     setSpeaking(false);
   };
 
   const clear = () => {
     setMessages([]);
+    setSpeaking(false);
+    Tts.stop();
   };
 
   useEffect(() => {
@@ -67,13 +77,62 @@ const HomeScreen = () => {
     Voice.onSpeechResults = speechResultsHandler;
     Voice.onSpeechError = speechErrorHandler;
 
+    // tts handlers
+    Tts.addEventListener("tts-start", (event) => console.log("start", event));
+    Tts.addEventListener("tts-progress", (event) =>
+      console.log("progress", event)
+    );
+    Tts.addEventListener("tts-finish", (event) => {
+      console.log("finish", event);
+      setSpeaking(false);
+    });
+    Tts.addEventListener("tts-cancel", (event) => console.log("cancel", event));
+
     return () => {
       //destroy the voice instance
       Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
 
-  console.log("Results: ", result);
+  const fetchResponse = () => {
+    if (result.trim().length > 0) {
+      let newMessages = [...messages];
+      newMessages.push({ role: "user", content: result.trim() });
+      setMessages([...newMessages]);
+      setLoading(true);
+      updateScrollView();
+
+      apiCall(result.trim(), newMessages).then((res) => {
+        setLoading(false);
+        if (res.success) {
+          setMessages([...res.data]);
+          updateScrollView();
+          setResult("");
+          startTextToSpeech(res.data[res.data.length - 1]);
+        } else {
+          Alert.alert("Error: ", res.msg);
+        }
+      });
+    }
+  };
+
+  const startTextToSpeech = (message) => {
+    if (!message.content.includes("https")) {
+      setSpeaking(true);
+      Tts.speak(message.content, {
+        iosVoiceId: "com.apple.ttsbundle.Moira-compact",
+        rate: 0.65,
+      });
+    }
+  };
+
+  const updateScrollView = () => {
+    setTimeout(() => {
+      ScrollViewRef?.current?.scrollToEnd({
+        animated: true,
+      });
+    }, 200);
+  };
 
   return (
     <View className="flex-1 bg-white">
@@ -103,6 +162,7 @@ const HomeScreen = () => {
               className="bg-neutral-200 rounded-3xl p-4"
             >
               <ScrollView
+                ref={ScrollViewRef}
                 bounces={false}
                 className="space-y-4"
                 showsVerticalScrollIndicator={false}
@@ -159,7 +219,12 @@ const HomeScreen = () => {
 
         {/* recording, clear, and stop buttons  */}
         <View className="flex justify-center items-center">
-          {recording ? (
+          {loading ? (
+            <Image
+              source={require("../assets/images/loading.gif")}
+              style={{ width: hp(10), height: hp(10) }}
+            />
+          ) : recording ? (
             <TouchableOpacity onPress={stopRecording}>
               {/* recording start button */}
               <Image

@@ -23,7 +23,6 @@ export const apiCall = async (prompt, messages) => {
       ],
     });
 
-    console.log("data ", result.data.choices[0].message);
     let isArt = result.data?.choices[0].message?.content;
 
     if (isArt.toLowerCase().includes("yes")) {
