@@ -5,14 +5,26 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Release",
+        "image": "latest"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
     },
     "production": {
-      "channel": "production"
+      "ios": {
+        "buildConfiguration": "Release",
+        "image": "latest"
+      }
     }
   },
   "submit": {
