@@ -9,7 +9,8 @@
       "ios": {
         "buildConfiguration": "Release",
         "image": "latest"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
@@ -18,13 +19,15 @@
       },
       "ios": {
         "simulator": true
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "ios": {
         "buildConfiguration": "Release",
         "image": "latest"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
