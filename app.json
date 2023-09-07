@@ -25,7 +25,8 @@
       },
       "permissions": [
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "package": "com.pmoja.aiassistant"
     },
     "web": {
       "favicon": "./assets/favicon.png"
